@@ -30,6 +30,7 @@ import lsim.library.api.LSimLogger;
 import recipes_service.activity_simulation.SimulationData;
 import recipes_service.communication.Host;
 import recipes_service.communication.Hosts;
+import recipes_service.communication.MessageOperation;
 import recipes_service.data.AddOperation;
 import recipes_service.data.Operation;
 import recipes_service.data.OperationType;
@@ -155,7 +156,21 @@ public class ServerData {
 	public synchronized void removeRecipe(String recipeTitle){
 		System.err.println("Error: removeRecipe method (recipesService.serverData) not yet implemented");
 	}
-	
+
+	public synchronized void addRemoveOperation(MessageOperation message) {
+		Operation operation = message.getOperation();
+
+		if(operation != null && operation.getType() == OperationType.ADD) {
+			AddOperation addOperation = (AddOperation) operation;
+			if(addOperation.getRecipe() != null && log.add(addOperation))
+				recipes.add(addOperation.getRecipe());
+		} else if(operation != null && operation.getType() == OperationType.REMOVE){
+			RemoveOperation removeOperation = (RemoveOperation) operation;
+			if(removeOperation.getRecipeTitle() != null && log.add(removeOperation))
+				recipes.remove(removeOperation.getRecipeTitle());
+		}
+	}
+
 	private synchronized void purgeTombstones(){
 		if (ack == null){
 			return;

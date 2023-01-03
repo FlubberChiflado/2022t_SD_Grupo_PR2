@@ -23,6 +23,7 @@ package recipes_service.tsae.sessions;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Vector;
@@ -69,44 +70,81 @@ public class TSAESessionPartnerSide extends Thread{
 
 			// receive request from originator and update local state
 			// receive originator's summary and ack
-			msg = (Message) in.readObject();
+			msg = (Message) in.readObject(); // --- TSAESessionPartnerSide ejemplo Phase2
 			current_session_number = msg.getSessionNumber();
 			LSimLogger.log(Level.TRACE, "[TSAESessionPartnerSide] [session: "+current_session_number+"] TSAE session");
 			LSimLogger.log(Level.TRACE, "[TSAESessionPartnerSide] [session: "+current_session_number+"] received message: "+ msg);
-			if (msg.type() == MsgType.AE_REQUEST){
-				// ...
-				
-	            // send operations
-					// ...
-					out.writeObject(msg);
-					msg.setSessionNumber(current_session_number);
-					LSimLogger.log(Level.TRACE, "[TSAESessionPartnerSide] [session: "+current_session_number+"] sent message: "+ msg);
-
-
-				// send to originator: local's summary and ack
+			if (msg.type() == MsgType.AE_REQUEST){ // --- TSAESessionPartnerSide ejemplo Phase2
+				// Añadido
+				MessageAErequest messageAER = (MessageAErequest) msg;
+				// Fin
 				TimestampVector localSummary = null;
 				TimestampMatrix localAck = null;
-				msg = new MessageAErequest(localSummary, localAck);
+
+				// Añadido
+				synchronized (serverData) {
+					localSummary = serverData.getSummary().clone();
+					serverData.getAck().update(serverData.getId(), localSummary);
+					localAck = serverData.getAck().clone();
+				}
+
+				// Obtenemos los logs
+				List<Operation> newLogs = serverData.getLog().listNewer(messageAER.getSummary());
+				// Recorremos todos los logs
+				for (Operation op : newLogs) {
+					out.writeObject(new MessageOperation(op));
+				}
+				// Fin
+	            // send operations
+					// ...
+				/*  --- Implementacion oficial ---
+					out.writeObject(msg); // --- TSAESessionPartnerSide ejemplo Phase2
+					msg.setSessionNumber(current_session_number);
+					LSimLogger.log(Level.TRACE, "[TSAESessionPartnerSide] [session: "+current_session_number+"] sent message: "+ msg);
+				*/
+
+				// send to originator: local's summary and ack
+				msg = new MessageAErequest(localSummary, localAck); // TSAESessionPartnerSide ejemplo Phase2
 				msg.setSessionNumber(current_session_number);
-	 	        out.writeObject(msg);
+	 	        out.writeObject(msg); // --- TSAESessionPartnerSide ejemplo Phase2
 				LSimLogger.log(Level.TRACE, "[TSAESessionPartnerSide] [session: "+current_session_number+"] sent message: "+ msg);
 
+				// Añadido
+				List<MessageOperation> listOperations = new ArrayList<MessageOperation>();
+				// Fin
+
 	            // receive operations
-				msg = (Message) in.readObject();
+				msg = (Message) in.readObject(); // --- TSAESessionPartnerSide ejemplo Phase2
 				LSimLogger.log(Level.TRACE, "[TSAESessionPartnerSide] [session: "+current_session_number+"] received message: "+ msg);
-				while (msg.type() == MsgType.OPERATION){
-					// ...
-					msg = (Message) in.readObject();
+				while (msg.type() == MsgType.OPERATION){ // --- TSAESessionPartnerSide ejemplo Phase2
+					// Añadido
+					listOperations.add((MessageOperation) msg);
+					// Fin
+					msg = (Message) in.readObject(); // --- TSAESessionPartnerSide ejemplo Phase2
 					LSimLogger.log(Level.TRACE, "[TSAESessionPartnerSide] [session: "+current_session_number+"] received message: "+ msg);
 				}
 				
 				// receive message to inform about the ending of the TSAE session
-				if (msg.type() == MsgType.END_TSAE){
+				if (msg.type() == MsgType.END_TSAE){ // --- TSAESessionPartnerSide ejemplo Phase2
 					// send and "end of TSAE session" message
-					msg = new MessageEndTSAE();
+					msg = new MessageEndTSAE(); // --- TSAESessionPartnerSide ejemplo Phase2
 					msg.setSessionNumber(current_session_number);
-		            out.writeObject(msg);					
+		            out.writeObject(msg); // --- TSAESessionPartnerSide ejemplo Phase2
 					LSimLogger.log(Level.TRACE, "[TSAESessionPartnerSide] [session: "+current_session_number+"] sent message: "+ msg);
+
+					// Añadido
+					synchronized (serverData) {
+						// Recorremos la lista de operaciones
+						for (MessageOperation operation : listOperations) {
+							serverData.addRemoveOperation(operation);
+						}
+
+						serverData.getSummary().updateMax(messageAER.getSummary());
+						serverData.getAck().updateMax(messageAER.getAck());
+						serverData.getLog().purgeLog(serverData.getAck());
+					}
+					// Fin
+
 				}
 				
 			}

@@ -28,6 +28,7 @@ import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.ArrayList;
 
 import edu.uoc.dpcs.lsim.logger.LoggerManager.Level;
 import lsim.library.api.LSimCoordinator;
@@ -81,6 +82,16 @@ public class TimestampVector implements Serializable{
 	 * @param tsVector (a timestamp vector)
 	 */
 	public void updateMax(TimestampVector tsVector){
+		// Accedemos al hashmap del timestamp pasado por parametros e iteramos todas sus keys
+		for (Iterator<String> itString = tsVector.timestampVector.keySet().iterator(); itString.hasNext(); ){
+			// Guardamos la key que esta iterando
+			String str = itString.next();
+			// Guardamos los dos timestamp en dos variables para compararlos posteriormente
+			Timestamp tsVector1 = tsVector.timestampVector.get(str);
+			Timestamp tsVector2 = timestampVector.get(str);
+			// Actualizamos el correspondiente timestamp atraves de una comprobacion con un operador ternario
+			updateTimestamp(tsVector1.compare(tsVector2) > 0 ? tsVector1 : tsVector2);
+		}
 	}
 
 	/**
@@ -91,8 +102,8 @@ public class TimestampVector implements Serializable{
 	 */
 	public Timestamp getLast(String node){
 
-		// return generated automatically. Remove it when implementing your solution
-		return null;
+		//recibimos por parametro la key del hashmap asi que retornamos su valor
+		return this.timestampVector.get(node);
 	}
 
 	/**
@@ -102,15 +113,33 @@ public class TimestampVector implements Serializable{
 	 *  @param tsVector (timestamp vector)
 	 */
 	public void mergeMin(TimestampVector tsVector){
+		// Accedemos al hashmap del timestamp vector pasado por parametro y recorremos sus keys
+		for (Iterator<String> iteratorKeys = tsVector.timestampVector.keySet().iterator(); iteratorKeys.hasNext(); ){
+			// Guardamos la siguiente key del iterator
+			String nextKey = iteratorKeys.next();
+			// Guardamos los dos timestamps en una variable para compararlos posteriormente
+			Timestamp timestamp1 = tsVector.timestampVector.get(nextKey);
+			Timestamp timestamp2 = timestampVector.get(nextKey);
+			// Actualizamos el timesmap dependiendo de cual es mayor y usamos un operador terneraio
+			updateTimestamp(timestamp1.compare(timestamp2) < 0 ? timestamp1 : timestamp2);
+		}
 	}
 
 	/**
 	 * clone
 	 */
 	public TimestampVector clone(){
-
-		// return generated automatically. Remove it when implementing your solution
-		return null;
+		// Declaramos e inicializamos el timestamap que sera clonado
+		TimestampVector timestamp = new TimestampVector(new ArrayList<String>());
+		// Recorremos las keys del hashmap de timestamp
+		for (Iterator<String> iteratorTimestamp = timestampVector.keySet().iterator(); iteratorTimestamp.hasNext(); ){
+			// Recogemos la siguiente key
+			String keyId = iteratorTimestamp.next();
+			// La añadimos al hashmap
+			timestamp.timestampVector.put(keyId, timestampVector.get(keyId));
+		}
+		// Retornamos el timestamp clonado
+		return timestamp;
 	}
 
 	/**

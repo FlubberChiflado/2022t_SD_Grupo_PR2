@@ -102,9 +102,28 @@ public class Log implements Serializable{
 	 * @return list of operations
 	 */
 	public List<Operation> listNewer(TimestampVector sum){
+		List<Operation> newerListOperations = new Vector<Operation>();
+		List<String> participants = new Vector<String>(this.log.keySet());
 
-		// return generated automatically. Remove it when implementing your solution
-		return null;
+		// Iteramos todas las claves del hashmap
+		for (Iterator<String> it = participants.iterator(); it.hasNext(); ){
+			// Obtenemos el nodo siguiente
+			String node = it.next();
+			List<Operation> operations = new Vector<Operation>(this.log.get(node));
+			Timestamp timestampToCompare = sum.getLast(node);
+
+			// Iteraramos las operaciones
+			for (Iterator<Operation> operationIteration = operations.iterator(); operationIteration.hasNext(); ) {
+				Operation op = operationIteration.next();
+				// Comparamos el timestap y si es mayor
+				if (op.getTimestamp().compare(timestampToCompare) > 0) {
+					// Añadimos las operaciones a la lista
+					newerListOperations.add(op);
+				}
+			}
+		}
+		// Finalmente devolvemos la lista de todas las operaciones
+		return newerListOperations;
 	}
 
 	/**

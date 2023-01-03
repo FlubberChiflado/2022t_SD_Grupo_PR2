@@ -22,10 +22,7 @@ package recipes_service.tsae.sessions;
 
 import java.io.IOException;
 import java.net.Socket;
-import java.util.Iterator;
-import java.util.List;
-import java.util.TimerTask;
-import java.util.Vector;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import recipes_service.ServerData;
@@ -99,44 +96,78 @@ public class TSAESessionOriginatorSide extends TimerTask{
 
 			TimestampVector localSummary = null;
 			TimestampMatrix localAck = null;
-
+			// Añadido
+				synchronized (serverData)
+				{
+					localSummary = serverData.getSummary().clone();
+					serverData.getAck().update(serverData.getId(), localSummary);
+					localAck = serverData.getAck().clone();
+				}
+			// Fin
 			// Send to partner: local's summary and ack
-			Message	msg = new MessageAErequest(localSummary, localAck);
+			Message	msg = new MessageAErequest(localSummary, localAck); // --- TSAESessionPartnerSide ejemplo Phase2
 			msg.setSessionNumber(current_session_number);
-            out.writeObject(msg);
+            out.writeObject(msg); // --- TSAESessionPartnerSide ejemplo Phase2
 			LSimLogger.log(Level.TRACE, "[TSAESessionOriginatorSide] [session: "+current_session_number+"] sent message: "+msg);
 
             // receive operations from partner
-			msg = (Message) in.readObject();
+			// Añadido
+			List<MessageOperation> listOperations = new ArrayList<MessageOperation>();
+			// Fin
+			msg = (Message) in.readObject(); // --- TSAESessionPartnerSide ejemplo Phase2
 			LSimLogger.log(Level.TRACE, "[TSAESessionOriginatorSide] [session: "+current_session_number+"] received message: "+msg);
-			while (msg.type() == MsgType.OPERATION){
-				// ...
-				msg = (Message) in.readObject();
+			while (msg.type() == MsgType.OPERATION){ // --- TSAESessionPartnerSide ejemplo Phase2
+				// Añadido
+				listOperations.add((MessageOperation) msg);
+				// Fin
+				msg = (Message) in.readObject(); // --- TSAESessionPartnerSide ejemplo Phase2
 				LSimLogger.log(Level.TRACE, "[TSAESessionOriginatorSide] [session: "+current_session_number+"] received message: "+msg);
 			}
 
             // receive partner's summary and ack
-			if (msg.type() == MsgType.AE_REQUEST){
-				// ...
+			if (msg.type() == MsgType.AE_REQUEST){ // --- TSAESessionPartnerSide ejemplo Phase2
+				// Añadido
+				MessageAErequest messageAER = (MessageAErequest) msg;
+				List<Operation> newLogs = serverData.getLog().listNewer(messageAER.getSummary());
+
+				for (Operation op : newLogs)
+				{
+					out.writeObject(new MessageOperation(op));
+					LSimLogger.log(Level.TRACE, "[TSAESessionOriginatorSide] [session: "+current_session_number+"] sent message: "+msg);
+
+				}
+				// Fin
 				
 				// send operations
 				
 				//...
+				/* --- Implementacion oficial ---
 					msg.setSessionNumber(current_session_number);
 					out.writeObject(msg);
 					LSimLogger.log(Level.TRACE, "[TSAESessionOriginatorSide] [session: "+current_session_number+"] sent message: "+msg);
-
+				*/
 				// send and "end of TSAE session" message
-				msg = new MessageEndTSAE();  
+				msg = new MessageEndTSAE(); // --- TSAESessionPartnerSide ejemplo Phase2
 				msg.setSessionNumber(current_session_number);
-	            out.writeObject(msg);					
+	            out.writeObject(msg); // --- TSAESessionPartnerSide ejemplo Phase2
 				LSimLogger.log(Level.TRACE, "[TSAESessionOriginatorSide] [session: "+current_session_number+"] sent message: "+msg);
 
 				// receive message to inform about the ending of the TSAE session
-				msg = (Message) in.readObject();
+				msg = (Message) in.readObject(); // --- TSAESessionPartnerSide ejemplo Phase2
 				LSimLogger.log(Level.TRACE, "[TSAESessionOriginatorSide] [session: "+current_session_number+"] received message: "+msg);
-				if (msg.type() == MsgType.END_TSAE){
-					// 
+				if (msg.type() == MsgType.END_TSAE){ // --- TSAESessionPartnerSide ejemplo Phase2
+					// Añadido
+					synchronized (serverData) {
+						// Recorremos la lista de operaciones
+						for (MessageOperation operation : listOperations) {
+							serverData.addRemoveOperation(operation);
+						}
+
+						serverData.getSummary().updateMax(messageAER.getSummary());
+						serverData.getAck().updateMax(messageAER.getAck());
+						serverData.getLog().purgeLog(serverData.getAck());
+					}
+					// Fin
 				}
 
 			}			
