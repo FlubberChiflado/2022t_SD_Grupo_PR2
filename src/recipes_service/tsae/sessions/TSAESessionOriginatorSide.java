@@ -99,9 +99,9 @@ public class TSAESessionOriginatorSide extends TimerTask{
 			// Añadido
 				synchronized (serverData)
 				{
-					localSummary = serverData.getSummary().clone();
-					serverData.getAck().update(serverData.getId(), localSummary);
-					localAck = serverData.getAck().clone();
+					localSummary = this.serverData.getSummary().clone();			// Almacenamos en localSummary el timestamp clonado
+					serverData.getAck().update(serverData.getId(), localSummary);	// Actualizamos la estructura de datos del Server
+					localAck = serverData.getAck().clone();							// Almacenamos en localAck actual
 				}
 			// Fin
 			// Send to partner: local's summary and ack
@@ -112,13 +112,13 @@ public class TSAESessionOriginatorSide extends TimerTask{
 
             // receive operations from partner
 			// Añadido
-			List<MessageOperation> listOperations = new ArrayList<MessageOperation>();
+			List<MessageOperation> operations = new ArrayList<MessageOperation>();					// Creamos la variable operations para que almacene la lista de operaciones del partner
 			// Fin
 			msg = (Message) in.readObject(); // --- TSAESessionPartnerSide ejemplo Phase2
 			LSimLogger.log(Level.TRACE, "[TSAESessionOriginatorSide] [session: "+current_session_number+"] received message: "+msg);
 			while (msg.type() == MsgType.OPERATION){ // --- TSAESessionPartnerSide ejemplo Phase2
 				// Añadido
-				listOperations.add((MessageOperation) msg);
+				operations.add((MessageOperation) msg);								// Añadimos en la lista el msg
 				// Fin
 				msg = (Message) in.readObject(); // --- TSAESessionPartnerSide ejemplo Phase2
 				LSimLogger.log(Level.TRACE, "[TSAESessionOriginatorSide] [session: "+current_session_number+"] received message: "+msg);
@@ -127,12 +127,12 @@ public class TSAESessionOriginatorSide extends TimerTask{
             // receive partner's summary and ack
 			if (msg.type() == MsgType.AE_REQUEST){ // --- TSAESessionPartnerSide ejemplo Phase2
 				// Añadido
-				MessageAErequest messageAER = (MessageAErequest) msg;
-				List<Operation> newLogs = serverData.getLog().listNewer(messageAER.getSummary());
+				MessageAErequest messageAE = (MessageAErequest) msg;				// Castea el mensaje recibido
+				List<Operation> newLogs = serverData.getLog().listNewer(messageAE.getSummary());	// Y se añade a la lista de operaciones
 
-				for (Operation op : newLogs)
+				for (Operation op : newLogs)										// Recorremos todas los logs
 				{
-					out.writeObject(new MessageOperation(op));
+					out.writeObject(new MessageOperation(op));						// Enviamos el log
 					LSimLogger.log(Level.TRACE, "[TSAESessionOriginatorSide] [session: "+current_session_number+"] sent message: "+msg);
 
 				}
@@ -158,14 +158,13 @@ public class TSAESessionOriginatorSide extends TimerTask{
 				if (msg.type() == MsgType.END_TSAE){ // --- TSAESessionPartnerSide ejemplo Phase2
 					// Añadido
 					synchronized (serverData) {
-						// Recorremos la lista de operaciones
-						for (MessageOperation operation : listOperations) {
+						for (MessageOperation operation : operations) {				// Recorremos la lista de operaciones
 							serverData.addRemoveOperation(operation);
 						}
 
-						serverData.getSummary().updateMax(messageAER.getSummary());
-						serverData.getAck().updateMax(messageAER.getAck());
-						serverData.getLog().purgeLog(serverData.getAck());
+						serverData.getSummary().updateMax(messageAE.getSummary());	// Actualizamos summary
+						serverData.getAck().updateMax(messageAE.getAck());			// Actualizamos ACK
+						serverData.getLog().purgeLog(serverData.getAck());			// Eliminamos las operaciones del registro recnocidas por todos los miembros
 					}
 					// Fin
 				}

@@ -82,15 +82,18 @@ public class TimestampVector implements Serializable{
 	 * @param tsVector (a timestamp vector)
 	 */
 	public void updateMax(TimestampVector tsVector){
-		// Accedemos al hashmap del timestamp pasado por parametros e iteramos todas sus keys
-		for (Iterator<String> itString = tsVector.timestampVector.keySet().iterator(); itString.hasNext(); ){
-			// Guardamos la key que esta iterando
-			String str = itString.next();
-			// Guardamos los dos timestamp en dos variables para compararlos posteriormente
-			Timestamp tsVector1 = tsVector.timestampVector.get(str);
-			Timestamp tsVector2 = timestampVector.get(str);
-			// Actualizamos el correspondiente timestamp atraves de una comprobacion con un operador ternario
-			updateTimestamp(tsVector1.compare(tsVector2) > 0 ? tsVector1 : tsVector2);
+		if (tsVector == null)
+			return;
+
+		for (Iterator<String> iterator = tsVector.timestampVector.keySet().iterator(); iterator.hasNext(); ){
+			String key = iterator.next();							// Almacenamos la key iterada
+			Timestamp node1 = tsVector.timestampVector.get(key);	// Almacenamos en node1 el timestamp
+			Timestamp node2 = timestampVector.get(key);				// Almacenamos en node2 el timestamp
+
+			if (node1.compare(node2) < 0)
+				updateTimestamp(node1);								// Actualizamos el timestamp
+			else
+				updateTimestamp(node2);								// Actualizamos el timestamp
 		}
 	}
 
@@ -101,9 +104,7 @@ public class TimestampVector implements Serializable{
 	 * received.
 	 */
 	public Timestamp getLast(String node){
-
-		//recibimos por parametro la key del hashmap asi que retornamos su valor
-		return this.timestampVector.get(node);
+		return this.timestampVector.get(node);	// Devolvemos el valor de la key del hashmap
 	}
 
 	/**
@@ -113,15 +114,18 @@ public class TimestampVector implements Serializable{
 	 *  @param tsVector (timestamp vector)
 	 */
 	public void mergeMin(TimestampVector tsVector){
-		// Accedemos al hashmap del timestamp vector pasado por parametro y recorremos sus keys
-		for (Iterator<String> iteratorKeys = tsVector.timestampVector.keySet().iterator(); iteratorKeys.hasNext(); ){
-			// Guardamos la siguiente key del iterator
-			String nextKey = iteratorKeys.next();
-			// Guardamos los dos timestamps en una variable para compararlos posteriormente
-			Timestamp timestamp1 = tsVector.timestampVector.get(nextKey);
-			Timestamp timestamp2 = timestampVector.get(nextKey);
-			// Actualizamos el timesmap dependiendo de cual es mayor y usamos un operador terneraio
-			updateTimestamp(timestamp1.compare(timestamp2) < 0 ? timestamp1 : timestamp2);
+		if (tsVector == null)
+			return;
+
+		for (Iterator<String> iterator = tsVector.timestampVector.keySet().iterator(); iterator.hasNext(); ){
+			String key = iterator.next();							// Almacenamos la key iterada
+			Timestamp node1 = tsVector.timestampVector.get(key);	// Almacenamos en node1 el timestamp
+			Timestamp node2 = timestampVector.get(key);				// Almacenamos en node2 el timestamp
+
+			if (node1.compare(node2) < 0)
+				updateTimestamp(node1);								// Actualizamos el timestamp
+			else
+				updateTimestamp(node2);								// Actualizamos el timestamp
 		}
 	}
 
@@ -129,17 +133,13 @@ public class TimestampVector implements Serializable{
 	 * clone
 	 */
 	public TimestampVector clone(){
-		// Declaramos e inicializamos el timestamap que sera clonado
 		TimestampVector timestamp = new TimestampVector(new ArrayList<String>());
-		// Recorremos las keys del hashmap de timestamp
-		for (Iterator<String> iteratorTimestamp = timestampVector.keySet().iterator(); iteratorTimestamp.hasNext(); ){
-			// Recogemos la siguiente key
-			String keyId = iteratorTimestamp.next();
-			// La añadimos al hashmap
-			timestamp.timestampVector.put(keyId, timestampVector.get(keyId));
+
+		for (Iterator<String> iterator = timestampVector.keySet().iterator(); iterator.hasNext(); ){
+			String key = iterator.next();									// Almacenamos la key iterada
+			timestamp.timestampVector.put(key, timestampVector.get(key));	// Añadimos la key al hashmap
 		}
-		// Retornamos el timestamp clonado
-		return timestamp;
+		return timestamp;													// Devolvemos el timestamp clonado
 	}
 
 	/**

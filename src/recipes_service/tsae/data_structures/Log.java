@@ -102,28 +102,20 @@ public class Log implements Serializable{
 	 * @return list of operations
 	 */
 	public List<Operation> listNewer(TimestampVector sum){
-		List<Operation> newerListOperations = new Vector<Operation>();
-		List<String> participants = new Vector<String>(this.log.keySet());
+		List<Operation> newerOperations = new Vector<Operation>();							// Almacenamos las nuevas operaciones
+		List<String> hosts = new Vector<String>(this.log.keySet());						// Almacenaremos todos los hosts del registo
 
-		// Iteramos todas las claves del hashmap
-		for (Iterator<String> it = participants.iterator(); it.hasNext(); ){
-			// Obtenemos el nodo siguiente
-			String node = it.next();
-			List<Operation> operations = new Vector<Operation>(this.log.get(node));
-			Timestamp timestampToCompare = sum.getLast(node);
+		for (Iterator<String> iterator = hosts.iterator(); iterator.hasNext(); ){	// Recorremos todas las claves
+			String node = iterator.next();											// Almacenamos en node el siguiente nodo
+			List<Operation> operations = new Vector<Operation>(this.log.get(node));			// Almacenamos en operations la lista de operaciones del nodo
+			Timestamp timestamp = sum.getLast(node);								// Almacenamos en timestamp el valor de la key del hashmap
 
-			// Iteraramos las operaciones
-			for (Iterator<Operation> operationIteration = operations.iterator(); operationIteration.hasNext(); ) {
-				Operation op = operationIteration.next();
-				// Comparamos el timestap y si es mayor
-				if (op.getTimestamp().compare(timestampToCompare) > 0) {
-					// Añadimos las operaciones a la lista
-					newerListOperations.add(op);
-				}
+			for (Operation op : operations) {										// Recorremos todas las operaciones de los hosts
+				if (op.getTimestamp().compare(timestamp) > 0)						// Si el timestamps es mayor
+					newerOperations.add(op);										// Añadimos la operacion
 			}
 		}
-		// Finalmente devolvemos la lista de todas las operaciones
-		return newerListOperations;
+		return newerOperations;														// Devolvemos la lista con todas las nuevas operaciones
 	}
 
 	/**
