@@ -101,8 +101,8 @@ public class Log implements Serializable{
 	 * @param sum
 	 * @return list of operations
 	 */
-	public List<Operation> listNewer(TimestampVector sum){
-		List<Operation> newerOperations = new Vector<Operation>();							// Almacenamos las nuevas operaciones
+	public synchronized List<Operation> listNewer(TimestampVector sum){
+		List<Operation> newOperations = new Vector<Operation>();							// Almacenamos las nuevas operaciones
 		List<String> hosts = new Vector<String>(this.log.keySet());						// Almacenaremos todos los hosts del registo
 
 		for (Iterator<String> iterator = hosts.iterator(); iterator.hasNext(); ){	// Recorremos todas las claves
@@ -112,10 +112,10 @@ public class Log implements Serializable{
 
 			for (Operation op : operations) {										// Recorremos todas las operaciones de los hosts
 				if (op.getTimestamp().compare(timestamp) > 0)						// Si el timestamps es mayor
-					newerOperations.add(op);										// Añadimos la operacion
+					newOperations.add(op);										// Añadimos la operacion
 			}
 		}
-		return newerOperations;														// Devolvemos la lista con todas las nuevas operaciones
+		return newOperations;														// Devolvemos la lista con todas las nuevas operaciones
 	}
 
 	/**
@@ -135,15 +135,17 @@ public class Log implements Serializable{
 	public boolean equals(Object obj) {
 		//Creamos log2 donde se almacenara el segundo log para debugear
 		Log log2 = (Log) obj;
+
+		//Si el objeto existe o si los dos logs son iguales devuelve verdadero
+		if (this == obj || this.log == log2.log) {
+			return true;
+		}
 		//Si el objeto, o el primero o el segundo log o el objeto no es de la misma clase
 		//devolvera falso
 		if (obj == null || this.log == null || log2.log == null || !(obj instanceof Log)) {
 			return false;
 		}
-		//Si el objeto existe o si los dos logs son iguales devuelve verdadero
-		if (this == obj || this.log == log2.log) {
-			return true;
-		}
+
 		//Si los logs no coinciden devuelve el resutaldo de la comparacion
 		return this.log.equals(log2.log);
 	}

@@ -81,7 +81,7 @@ public class TimestampVector implements Serializable{
 	 * merge in another vector, taking the elementwise maximum
 	 * @param tsVector (a timestamp vector)
 	 */
-	public void updateMax(TimestampVector tsVector){
+	public synchronized void updateMax(TimestampVector tsVector){
 		if (tsVector == null)
 			return;
 
@@ -90,7 +90,7 @@ public class TimestampVector implements Serializable{
 			Timestamp node1 = tsVector.timestampVector.get(key);	// Almacenamos en node1 el timestamp
 			Timestamp node2 = timestampVector.get(key);				// Almacenamos en node2 el timestamp
 
-			if (node1.compare(node2) < 0)
+			if (node1.compare(node2) > 0)
 				updateTimestamp(node1);								// Actualizamos el timestamp
 			else
 				updateTimestamp(node2);								// Actualizamos el timestamp
@@ -103,7 +103,7 @@ public class TimestampVector implements Serializable{
 	 * @return the last timestamp issued by node that has been
 	 * received.
 	 */
-	public Timestamp getLast(String node){
+	public synchronized Timestamp getLast(String node){
 		return this.timestampVector.get(node);	// Devolvemos el valor de la key del hashmap
 	}
 
@@ -113,7 +113,7 @@ public class TimestampVector implements Serializable{
 	 * After merging, local node will have the smallest timestamp for each node.
 	 *  @param tsVector (timestamp vector)
 	 */
-	public void mergeMin(TimestampVector tsVector){
+	public synchronized void mergeMin(TimestampVector tsVector){
 		if (tsVector == null)
 			return;
 
@@ -132,7 +132,7 @@ public class TimestampVector implements Serializable{
 	/**
 	 * clone
 	 */
-	public TimestampVector clone(){
+	public synchronized TimestampVector clone(){
 		TimestampVector timestamp = new TimestampVector(new ArrayList<String>());
 
 		for (Iterator<String> iterator = timestampVector.keySet().iterator(); iterator.hasNext(); ){

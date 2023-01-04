@@ -1,22 +1,22 @@
 /*
-* Copyright (c) Joan-Manuel Marques 2013. All rights reserved.
-* DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
-*
-* This file is part of the practical assignment of Distributed Systems course.
-*
-* This code is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* This code is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this code.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ * Copyright (c) Joan-Manuel Marques 2013. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This file is part of the practical assignment of Distributed Systems course.
+ *
+ * This code is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This code is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this code.  If not, see <http://www.gnu.org/licenses/>.
+ */
 
 package recipes_service;
 
@@ -48,21 +48,21 @@ import recipes_service.tsae.sessions.TSAESessionOriginatorSide;
  *
  */
 public class ServerData {
-	
+
 	// server id
 	private String id;
-	
+
 	// sequence number of the last recipe timestamped by this server
 	private long seqnum=Timestamp.NULL_TIMESTAMP_SEQ_NUMBER; // sequence number (to timestamp)
 
 	// timestamp lock
 	private Object timestampLock = new Object();
-	
+
 	// TSAE data structures
 	private Log log = null;
 	private TimestampVector summary = null;
 	private TimestampMatrix ack = null;
-	
+
 	// recipes data structure
 	private Recipes recipes = new Recipes();
 
@@ -71,7 +71,7 @@ public class ServerData {
 
 	// propDegree: (default value: 0) number of TSAE sessions done each time a new data is created
 	int propDegree = 0;
-	
+
 	// Participating nodes
 	private Hosts participants;
 
@@ -87,13 +87,13 @@ public class ServerData {
 	// TODO: esborrar aquesta estructura de dades
 	// tombstones: timestamp of removed operations
 	List<Timestamp> tombstones = new Vector<Timestamp>();
-	
+
 	// end: true when program should end; false otherwise
 	private boolean end;
 
 	public ServerData(){
 	}
-	
+
 	/**
 	 * Starts the execution
 	 * @param participantss
@@ -103,10 +103,10 @@ public class ServerData {
 		this.log = new Log(participants.getIds());
 		this.summary = new TimestampVector(participants.getIds());
 		this.ack = new TimestampMatrix(participants.getIds());
-		
+
 
 		//  Sets the Timer for TSAE sessions
-	    tsae = new TSAESessionOriginatorSide(this);
+		tsae = new TSAESessionOriginatorSide(this);
 		tsaeSessionTimer = new Timer();
 		tsaeSessionTimer.scheduleAtFixedRate(tsae, sessionDelay, sessionPeriod);
 	}
@@ -114,11 +114,11 @@ public class ServerData {
 	public void stopTSAEsessions(){
 		this.tsaeSessionTimer.cancel();
 	}
-	
+
 	public boolean end(){
 		return this.end;
 	}
-	
+
 	public void setEnd(){
 		this.end = true;
 	}
@@ -152,23 +152,23 @@ public class ServerData {
 //		LSimLogger.log(Level.TRACE,"The recipe '"+recipeTitle+"' has been added");
 
 	}
-	
+
 	public synchronized void removeRecipe(String recipeTitle){
 		System.err.println("Error: removeRecipe method (recipesService.serverData) not yet implemented");
 	}
 
-	public synchronized void addRemoveOperation(MessageOperation message) {
-		Operation operation = message.getOperation();
+	public synchronized void addOp(MessageOperation message) {
+		AddOperation addOperation = (AddOperation) message.getOperation();
 
-		if(operation != null && operation.getType() == OperationType.ADD) {
-			AddOperation addOperation = (AddOperation) operation;
-			if(addOperation.getRecipe() != null && log.add(addOperation))
-				recipes.add(addOperation.getRecipe());
-		} else if(operation != null && operation.getType() == OperationType.REMOVE){
-			RemoveOperation removeOperation = (RemoveOperation) operation;
-			if(removeOperation.getRecipeTitle() != null && log.add(removeOperation))
-				recipes.remove(removeOperation.getRecipeTitle());
-		}
+		if(this.log.add(addOperation))
+			this.recipes.add(addOperation.getRecipe());
+	}
+
+	public synchronized void removeOp(MessageOperation message) {
+		RemoveOperation removeOperation = (RemoveOperation) message.getOperation();
+
+		if(this.log.add(removeOperation))
+			this.recipes.remove(removeOperation.getRecipeTitle());
 	}
 
 	private synchronized void purgeTombstones(){
@@ -176,7 +176,7 @@ public class ServerData {
 			return;
 		}
 		TimestampVector sum = ack.minTimestampVector();
-		
+
 		List<Timestamp> newTombstones = new Vector<Timestamp>();
 		for(int i=0; i<tombstones.size(); i++){
 			if (tombstones.get(i).compare(sum.getLast(tombstones.get(i).getHostid()))>0){
@@ -185,7 +185,7 @@ public class ServerData {
 		}
 		tombstones = newTombstones;
 	}
-	
+
 	// ****************************************************************************
 	// *** operations to get the TSAE data structures. Used to send to evaluation
 	// ****************************************************************************
@@ -206,7 +206,7 @@ public class ServerData {
 	// *** getters and setters
 	// ******************************
 	public void setId(String id){
-		this.id = id;		
+		this.id = id;
 	}
 	public String getId(){
 		return this.id;
@@ -237,17 +237,17 @@ public class ServerData {
 	public TSAESessionOriginatorSide getTSAESessionOriginatorSide(){
 		return this.tsae;
 	}
-	
+
 	// ******************************
 	// *** other
 	// ******************************
-	
+
 	public List<Host> getRandomPartners(int num){
 		return participants.getRandomPartners(num);
 	}
-	
+
 	/**
-	 * waits until the Server is ready to receive TSAE sessions from partner servers   
+	 * waits until the Server is ready to receive TSAE sessions from partner servers
 	 */
 	public synchronized void waitServerConnected(){
 		while (!SimulationData.getInstance().isConnected()){
@@ -259,11 +259,11 @@ public class ServerData {
 			}
 		}
 	}
-	
+
 	/**
 	 * 	Once the server is connected notifies to ServerPartnerSide that it is ready
-	 *  to receive TSAE sessions from partner servers  
-	 */ 
+	 *  to receive TSAE sessions from partner servers
+	 */
 	public synchronized void notifyServerConnected(){
 		notifyAll();
 	}
