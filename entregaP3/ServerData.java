@@ -152,21 +152,53 @@ public class ServerData {
 	}
 
 	public synchronized void removeRecipe(String recipeTitle){
-		System.err.println("Error: removeRecipe method (recipesService.serverData) not yet implemented");
+		//System.err.println("Error: removeRecipe method (recipesService.serverData) not yet implemented");
+		if(recipeTitle == null){
+			return ;
+		}
+
+		Timestamp timestamp = nextTimestamp();
+
+		Operation op = new RemoveOperation( recipeTitle,
+				                            recipes.get(recipeTitle).getTimestamp(),
+				 							timestamp);
+		log.add(op);
+
+		summary.updateTimestamp(timestamp);
+		recipes.remove(recipeTitle);
 	}
 
 	public synchronized void addOp(MessageOperation message) {
 		AddOperation addOperation = (AddOperation) message.getOperation();
-
-		if(this.log.add(addOperation))
-			this.recipes.add(addOperation.getRecipe());
+		synchronized (tombstones) {
+			if (this.log.add(addOperation)) {
+				this.recipes.add(addOperation.getRecipe());
+				if(tombstones.contains(addOperation.getTimestamp())){
+					recipes.remove(addOperation.getRecipe().getTitle());
+					tombstones.remove(addOperation.getTimestamp());
+				}
+			}
+		}
 	}
 
 	public synchronized void removeOp(MessageOperation message) {
 		RemoveOperation removeOperation = (RemoveOperation) message.getOperation();
+		synchronized (tombstones) {
+			if (this.log.add(removeOperation)) {
+				if (recipes.get(removeOperation.getRecipeTitle()) == null) {
+					if (!tombstones.contains(removeOperation.getRecipeTimestamp())) {
+						tombstones.add(removeOperation.getRecipeTimestamp());
+					}
+				} else {
 
-		if(this.log.add(removeOperation))
-			this.recipes.remove(removeOperation.getRecipeTitle());
+					this.recipes.remove(removeOperation.getRecipeTitle());
+
+					if(!tombstones.contains(removeOperation.getRecipeTimestamp())){
+						tombstones.add(removeOperation.getRecipeTimestamp());
+					}
+				}
+			}
+		}
 	}
 
 	private synchronized void purgeTombstones(){

@@ -138,7 +138,7 @@ public class Log implements Serializable{
 				//Obtenemos la lista de esa entrada
 				for (Iterator<Operation> op = log.get(key).iterator(); op.hasNext(); ) {
 					//Miramos Que sea anterior a la ultima
-					if (op.next().getTimestamp().compare(last) >= 0) {
+					if (op.next().getTimestamp().compare(last) <= 0) {
 						op.remove(); //Removemos la operacion
 					}
 				}

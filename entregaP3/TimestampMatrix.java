@@ -21,11 +21,7 @@
 package recipes_service.tsae.data_structures;
 
 import java.io.Serializable;
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.Iterator;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 ;
@@ -46,10 +42,6 @@ public class TimestampMatrix implements Serializable{
 			timestampMatrix.put(it.next(), new TimestampVector(participants));
 		}
 	}
-	//Constructor necesario para el metodo clone
-	public TimestampMatrix() {
-		super();
-	}
 	
 	/**
 	 * @param node
@@ -69,19 +61,14 @@ public class TimestampMatrix implements Serializable{
 	 * Merges two timestamp matrix taking the elementwise maximum
 	 * @param tsMatrix
 	 */
-	public void updateMax(TimestampMatrix tsMatrix){
-		//Recorremos las entradas de la matriz tsMatrix
-		for(Map.Entry<String, TimestampVector> entry: tsMatrix.timestampMatrix.entrySet()) {
+	public synchronized void updateMax(TimestampMatrix tsMatrix){
+		//Recorremos las entradas de NUESTRA matriz
+		for(Map.Entry<String, TimestampVector> entry: this.timestampMatrix.entrySet()) {
 			String key = entry.getKey();
 
-			//Recuperamos los timestampVectors de esta llave
-			TimestampVector tsTimestamp = entry.getValue();
-			TimestampVector thsTimestamp = this.timestampMatrix.get(key);
-
-			//Comprobamos que el tsTimestamp no sea nulo para evitar errores
-			if(tsTimestamp != null) {
-				tsTimestamp.updateMax(thsTimestamp);
-			}
+			TimestampVector tsVector = entry.getValue();
+			//updateamos el timestamp vector con el mayor de ambos
+			tsVector.updateMax(tsMatrix.getTimestampVector(key));
 		}
 	}
 	
@@ -90,10 +77,9 @@ public class TimestampMatrix implements Serializable{
 	 * @param node
 	 * @param tsVector
 	 */
-	public void update(String node, TimestampVector tsVector){
-		//Si el node ya tiene un timestamp hemos de remplazar el timestamp, si no hemos de insertar
-		if(this.timestampMatrix.get(node) != null) this.timestampMatrix.replace(node, tsVector);
-		else this.timestampMatrix.put(node, tsVector);
+	public synchronized void update(String node, TimestampVector tsVector){
+		//Insertamos el node
+		this.timestampMatrix.put(node, tsVector);
 	}
 	
 	/**
@@ -122,12 +108,13 @@ public class TimestampMatrix implements Serializable{
 	 */
 	public TimestampMatrix clone(){
 
+		//Creamos una lista con las keys que nos permita crear una nueva matriz
+		List<String> list = new ArrayList<String>(this.timestampMatrix.keySet());
 		//Creamos el nuevo objeto timestampmatrix
-		TimestampMatrix clonedMatrix = new TimestampMatrix();
-
+		TimestampMatrix clonedMatrix = new TimestampMatrix(list);
 		//Para cada entrada de la matriz original creamos otra igual en la matriz copiada
 		for(Map.Entry<String, TimestampVector> entry: timestampMatrix.entrySet()) {
-			clonedMatrix.timestampMatrix.put(entry.getKey(), entry.getValue());
+			clonedMatrix.update(entry.getKey(), entry.getValue());
 		}
 
 		return clonedMatrix;
